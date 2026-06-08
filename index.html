@@ -258,7 +258,7 @@ th{background:var(--table-th-bg) !important;}
   <header>
     <h1>ACCOUNTING PRO SYSTEM</h1>
     <div class="header-widgets">
-      
+       
       <div class="period-selector-wrapper">
         <label for="clientSelect">Active Client Profile:</label>
         <select id="clientSelect" onchange="onClientProfileChange()">
@@ -362,7 +362,7 @@ th{background:var(--table-th-bg) !important;}
         <option>Equity</option><option>Revenue</option><option>Expense</option>
       </select>
       <button onclick="addAccount()">Add Account</button>
-      
+       
       <div id="accountsToggleWrapper">
         <button id="toggleAccountsBtn" onclick="toggleAccountsVisibility()" style="background:#4b5563;">👁️ View Created Accounts</button>
         <div id="accounts"></div>
@@ -374,7 +374,7 @@ th{background:var(--table-th-bg) !important;}
        
       <div class="ai-scanner-zone">
         <h3>⚡ AI Smart Scan Engine</h3>
-        <p>Upload a clear invoice or receipt file. The engine uses layout parsing to automatically read amounts, evaluate accounting tracks, instantly create missing ledger accounts under accurate GAAP rules, and auto-post transactions.</p>
+        <p>Upload a clear cash purchase bill, receipt, or invoice. The embedded vision instance will automatically extract row arrays, auto-provision chart accounts, and balance the transaction lines.</p>
         <input type="file" id="aiScannerInput" accept="image/*,application/pdf">
         <button onclick="processInvoiceWithAI()" style="background:#2563eb; padding:6px 14px; font-size:13px;">✨ Scan & Auto-Post</button>
         <span id="aiScanStatus" style="font-size:13px; font-weight:bold; margin-left:10px; color:#f59e0b;"></span>
@@ -992,7 +992,6 @@ function isDateInSelectedPeriod(dateStr) {
   return d >= start && d <= end;
 }
 
-// Global window layout tracking filters modification
 function onPeriodChange() {
   localStorage.setItem("selectedAccountingPeriod", periodSelect.value);
   renderJournal();
@@ -1027,7 +1026,7 @@ async function rolloverFinancialYear() {
 
   let bal = {};
   accounts.forEach(a => bal[a.name] = 0);
-       
+        
   let periodEntries = entries.filter(x => isDateInSelectedPeriod(x.date));
   periodEntries.forEach(e=>{
     e.debitList.forEach(d => bal[d.acc] = (bal[d.acc] || 0) + d.amt);
@@ -1136,7 +1135,6 @@ function formatDisplayDate(dateString) {
 function runAiAuditBot(debitList, creditList, td, tc) {
   let issues = [];
 
-  // 1. Double-Entry Match Verifications
   if (Math.abs(td - tc) > 0.001) {
     issues.push(`• Total Debits (${td.toFixed(2)}) do not match Total Credits (${tc.toFixed(2)}). Mismatch variance: ${(Math.abs(td - tc)).toFixed(2)}.`);
   }
@@ -1145,7 +1143,6 @@ function runAiAuditBot(debitList, creditList, td, tc) {
     issues.push(`• Double-Entry Error: Every entry must include at least one valid debit row and one valid credit row.`);
   }
 
-  // 2. Value Error Assertions
   let zeroOrNegative = false;
   debitList.concat(creditList).forEach(row => {
     if (row.amt <= 0) zeroOrNegative = true;
@@ -1154,7 +1151,6 @@ function runAiAuditBot(debitList, creditList, td, tc) {
     issues.push(`• Value Error: Transaction rows cannot contain an amount equal to or less than 0.`);
   }
 
-  // 3. Structural Operational Mappings
   let debitNames = debitList.map(d => d.acc);
   let creditNames = creditList.map(c => c.acc);
   let overlappingAccounts = debitNames.filter(name => creditNames.includes(name));
@@ -1163,19 +1159,15 @@ function runAiAuditBot(debitList, creditList, td, tc) {
     issues.push(`• Circular Entry Warning: You have selected the account "${overlappingAccounts.join(", ")}" on both the Debit and Credit lines simultaneously. Please verify your ledger routing.`);
   }
 
-  // 4. Duplicate Entry Interception System
   const targetDate = jdate.value || new Date().toISOString().split('T')[0];
   
   if (!editId && typeof entries !== 'undefined' && entries.length > 0) {
     let duplicateFound = entries.some(existingEntry => {
-      // Step A: Evaluate Calendar Matching Window
       if (existingEntry.date !== targetDate) return false;
 
-      // Step B: Match Net Quantitative Values
       let existingTd = existingEntry.debitList.reduce((sum, i) => sum + i.amt, 0);
       if (Math.abs(existingTd - td) > 0.001) return false;
 
-      // Step C: Verify Deep Array Component Structures
       if (existingEntry.debitList.length !== debitList.length || existingEntry.creditList.length !== creditList.length) return false;
 
       let debitMatch = debitList.every(d => 
@@ -1423,7 +1415,6 @@ function printTrialBalancePDF() {
   window.print();
 }
 
-// Photo preview overlay controllers
 function previewImages(id) {
   let e = entries.find(x => x.id === id);
   if(!e) return;
@@ -1657,7 +1648,7 @@ function generateLedgers(){
 function generateTrial(){
   let bal = {};
   accounts.forEach(a => bal[a.name] = 0);
-       
+        
   let periodFilteredEntries = entries.filter(x => isDateInSelectedPeriod(x.date));
 
   periodFilteredEntries.forEach(e=>{
@@ -1762,6 +1753,8 @@ function setElementStatusUI(elementId, labelText, rating) {
     target.style.color = "white";
   }
 }
+
+
 
 function updateRatioDOMDisplays(current, quick, gpm, npm, debtEquity) {
   document.getElementById("ratioCurrentVal").innerText = current > 0 ? current.toFixed(2) : "0.00";
@@ -1974,156 +1967,6 @@ function toggleWidgetBotWindow(event) {
 }
 
 // ==========================================
-// ADVANCED AI DOCUMENT SMART-SCAN ENGINE
-// ==========================================
-async function processInvoiceWithAI() {
-  const fileInput = document.getElementById("aiScannerInput");
-  const statusSpan = document.getElementById("aiScanStatus");
-  const file = fileInput.files[0];
-
-  if (!file) {
-    alert("Please select an invoice or receipt image/PDF file to scan first.");
-    return;
-  }
-
-  statusSpan.style.color = "#f59e0b";
-  statusSpan.innerText = "⏳ Running document structural text extraction loops...";
-  
-  try {
-    const base64Data = await fileToBase64(file);
-    
-    /* PRODUCTION ENDPOINT SCHEMATICS DEPLOYMENT NOTE:
-    To go live, bridge this code to your cloud vision model endpoint (e.g., Gemini Flash Vision API):
-    
-    const response = await fetch("https://api.yourdomain.com/v1/ocr-accounting-parser", {
-       method: "POST",
-       body: JSON.stringify({ fileStream: base64Data })
-    });
-    const aiParsedResult = await response.json();
-    */
-
-    // DYNAMIC PARSER SIMULATOR: Dynamically reads file parameters and triggers auto-provision mappings
-    let mockAiParsedResult;
-    const fileNameLower = file.name.toLowerCase();
-
-    if (fileNameLower.includes("rent") || fileNameLower.includes("lease") || fileNameLower.includes("office")) {
-      mockAiParsedResult = {
-        date: "2026-06-01",
-        narration: `Office monthly space rent utilization auto-processed from scanned file ${file.name}.`,
-        debitList: [{ acc: "Rent Paid", amt: 45000.00, type: "Expense" }],
-        creditList: [{ acc: "Bank", amt: 45000.00, type: "Asset" }]
-      };
-    } else if (fileNameLower.includes("invoice") || fileNameLower.includes("sale") || fileNameLower.includes("client")) {
-      mockAiParsedResult = {
-        date: "2026-06-07",
-        narration: `Consolidated logistics distribution service invoice generated from ${file.name}.`,
-        debitList: [{ acc: "Debtors", amt: 18500.00, type: "Asset" }],
-        creditList: [{ acc: "Service Income", amt: 18500.00, type: "Revenue" }]
-      };
-    } else if (fileNameLower.includes("salary") || fileNameLower.includes("wage") || fileNameLower.includes("payroll")) {
-      mockAiParsedResult = {
-        date: "2026-05-31",
-        narration: `Corporate salary and payroll distribution ledger loop mapped from ${file.name}.`,
-        debitList: [{ acc: "Salary and Wages", amt: 125000.00, type: "Expense" }],
-        creditList: [{ acc: "Outstanding Expenses", amt: 125000.00, type: "Liability" }]
-      };
-    } else {
-      // General fall-back dynamic pattern template (Self-creates dynamic accounts)
-      mockAiParsedResult = {
-        date: new Date().toISOString().split('T')[0],
-        narration: `General operational overhead ledger entry auto-drafted from file parameters: ${file.name}.`,
-        debitList: [{ acc: "Painting Expense", amt: 8500.00, type: "Expense" }],
-        creditList: [{ acc: "Cash", amt: 8500.00, type: "Asset" }]
-      };
-    }
-
-    // Simulate 1.8-second document layout text extraction lag
-    await new Promise(resolve => setTimeout(resolve, 1800));
-
-    // Execute dynamic balance handlers
-    await autoPopulateAndPostJournal(mockAiParsedResult, base64Data);
-    
-    statusSpan.style.color = "var(--status-good)";
-    statusSpan.innerText = "✅ Posted across journals, ledgers, and trial balances!";
-    fileInput.value = ""; 
-    
-  } catch (error) {
-    statusSpan.style.color = "var(--status-bad)";
-    statusSpan.innerText = "❌ Auto-Scan Failure: Error executing text streams pipeline.";
-    console.error(error);
-  }
-}
-
-async function autoPopulateAndPostJournal(aiData, docBase64) {
-  resetForm();
-
-  document.getElementById("jdate").value = aiData.date;
-  document.getElementById("narration").value = aiData.narration;
-
-  document.getElementById("debits").innerHTML = "";
-  document.getElementById("credits").innerHTML = "";
-
-  // DYNAMIC SELF-CREATION ENGINE: Scans existing chart arrays. If not found, spins up ledger instances.
-  for (let d of aiData.debitList) {
-    await ensureAccountExists(d.acc, d.type);
-    addDebit(d.acc, d.amt);
-  }
-  for (let c of aiData.creditList) {
-    await ensureAccountExists(c.acc, c.type);
-    addCredit(c.acc, c.amt);
-  }
-
-  let autoEntryObj = {
-    date: aiData.date,
-    narration: aiData.narration,
-    debitList: aiData.debitList.map(x => ({ acc: x.acc, amt: x.amt })),
-    creditList: aiData.creditList.map(x => ({ acc: x.acc, amt: x.amt })),
-    proofs: [docBase64]
-  };
-
-  let td = aiData.debitList.reduce((sum, i) => sum + i.amt, 0);
-  let tc = aiData.creditList.reduce((sum, i) => sum + i.amt, 0);
-  let auditAlerts = runAiAuditBot(autoEntryObj.debitList, autoEntryObj.creditList, td, tc);
-
-  if (auditAlerts.length > 0) {
-    alert(`🚨 AI Auto-Scan Blocked: Double-entry audit parameters failed.\n\n${auditAlerts.join("\n")}`);
-    return;
-  }
-
-  await saveEntryDB(autoEntryObj);
-  entries = await getAll("entries");
-  populatePeriodDropdown();
-  
-  renderAll(); 
-}
-
-async function ensureAccountExists(accountName, accountType) {
-  const match = accounts.find(a => a.name.toLowerCase() === accountName.toLowerCase());
-  
-  if (!match) {
-    await saveAccount({ name: accountName, type: accountType });
-    accounts = await getAll("accounts");
-    
-    renderAccounts();
-    updateLedgerDropdown();
-    console.log(`✨ AI Dynamic Provisioner: Created account "${accountName}" mapped under [${accountType}] classification.`);
-  }
-}
-
-function closeWidgetBotWindow() {
-  document.getElementById("botInterfaceWindow").style.display = "none";
-}
-
-function appendBotMessage(text, type) {
-  let container = document.getElementById("botMessageContainer");
-  let msg = document.createElement("div");
-  msg.className = `bot-bubble ${type}-type`;
-  msg.innerText = text;
-  container.appendChild(msg);
-  container.scrollTop = container.scrollHeight;
-}
-
-// ==========================================
 // ACCOUNTING KNOWLEDGE BASE
 // ==========================================
 const ACCOUNTING_KNOWLEDGE_BASE = [
@@ -2282,6 +2125,153 @@ function dispatchUserBotMessage() {
     let fallback = fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
     appendBotMessage(fallback, "ai");
   }, 500);
+}
+
+// =======================================================
+// PRODUCTION-READY AI DOCUMENT SMART-SCAN VISION ENGINE
+// =======================================================
+async function processInvoiceWithAI() {
+  const fileInput = document.getElementById("aiScannerInput");
+  const statusSpan = document.getElementById("aiScanStatus");
+  const file = fileInput.files[0];
+
+  if (!file) {
+    alert("Please select an invoice or receipt image file to scan first.");
+    return;
+  }
+
+  // Your personal active developer credential key token bound to function logic execution
+  const apiKey = "AQ.Ab8RN6K_NGUg9BQ5cfoJu84KRTOhbztfi1gcphaZu6ZkyWxD0Q";
+
+  statusSpan.style.color = "#f59e0b";
+  statusSpan.innerText = "⏳ Reading layout fields and running deep balancing analysis...";
+  
+  try {
+    const base64DataWithHeader = await fileToBase64(file);
+    const base64DataRaw = base64DataWithHeader.split(',')[1];
+    const mimeType = file.type;
+
+    const systemInstruction = "You are a professional accounting automation assistant specialized in GAAP bookkeeping rules. Analyze the provided invoice/receipt image and output a clean, valid JSON object containing structural accounting values. Your JSON mapping must strictly match this format blueprint structure:\n{\n  \"date\": \"YYYY-MM-DD\",\n  \"narration\": \"A short description detailing items bought or services rendered, referencing the invoice number if present.\",\n  \"debitList\": [ { \"acc\": \"Account Name\", \"amt\": 100.00, \"type\": \"Asset|Liability|Equity|Revenue|Expense\" } ],\n  \"creditList\": [ { \"acc\": \"Account Name\", \"amt\": 100.00, \"type\": \"Asset|Liability|Equity|Revenue|Expense\" } ]\n}\nAccounting Rules:\n1. If an asset or equipment is purchased, debit an asset account like 'Office Equipment'.\n2. If GST or taxes are present on a purchase bill, isolate the tax amount into a separate debit line named 'GST Payable' (classified under 'Liability'). This acts as your input tax tracking component line.\n3. The sum total of amounts in 'debitList' must exactly match the sum total of 'creditList' down to the penny. Do not include currency symbols. Only output the raw JSON object. Do not wrap it in markdown codeblocks.";
+
+    const endpointUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    
+    const requestPayload = {
+      contents: [{
+        parts: [
+          { text: systemInstruction },
+          {
+            inlineData: {
+              mimeType: mimeType,
+              data: base64DataRaw
+            }
+          }
+        ]
+      }],
+      generationConfig: {
+        responseMimeType: "application/json"
+      }
+    };
+
+    const response = await fetch(endpointUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(requestPayload)
+    });
+
+    if (!response.ok) {
+      const errorDetails = await response.text();
+      throw new Error(`API Connection Route Failed: ${response.status} - ${errorDetails}`);
+    }
+
+    const apiRawData = await response.json();
+    const extractedText = apiRawData.candidates[0].content.parts[0].text.trim();
+    
+    const aiParsedResult = JSON.parse(extractedText);
+
+    if (!aiParsedResult.date || !aiParsedResult.debitList || !aiParsedResult.creditList) {
+      throw new Error("Extracted text properties mismatch system array requirements.");
+    }
+
+    await autoPopulateAndPostJournal(aiParsedResult, base64DataWithHeader);
+    
+    statusSpan.style.color = "var(--status-good)";
+    statusSpan.innerText = "✅ Successfully parsed and balanced across all books!";
+    fileInput.value = ""; 
+    
+  } catch (error) {
+    statusSpan.style.color = "var(--status-bad)";
+    statusSpan.innerText = "❌ Auto-Scan Failure: Unable to correctly map invoice ledger lines.";
+    console.error(error);
+    alert(`AI Processing Pipeline Error:\n${error.message}`);
+  }
+}
+
+async function autoPopulateAndPostJournal(aiData, docBase64) {
+  resetForm();
+
+  document.getElementById("jdate").value = aiData.date;
+  document.getElementById("narration").value = aiData.narration;
+
+  document.getElementById("debits").innerHTML = "";
+  document.getElementById("credits").innerHTML = "";
+
+  for (let d of aiData.debitList) {
+    await ensureAccountExists(d.acc, d.type);
+    addDebit(d.acc, d.amt);
+  }
+  for (let c of aiData.creditList) {
+    await ensureAccountExists(c.acc, c.type);
+    addCredit(c.acc, c.amt);
+  }
+
+  let autoEntryObj = {
+    date: aiData.date,
+    narration: aiData.narration,
+    debitList: aiData.debitList.map(x => ({ acc: x.acc, amt: x.amt })),
+    creditList: aiData.creditList.map(x => ({ acc: x.acc, amt: x.amt })),
+    proofs: [docBase64]
+  };
+
+  let td = aiData.debitList.reduce((sum, i) => sum + i.amt, 0);
+  let tc = aiData.creditList.reduce((sum, i) => sum + i.amt, 0);
+  let auditAlerts = runAiAuditBot(autoEntryObj.debitList, autoEntryObj.creditList, td, tc);
+
+  if (auditAlerts.length > 0) {
+    alert(`🚨 AI Auto-Scan Blocked: Double-entry audit parameters failed.\n\n${auditAlerts.join("\n")}`);
+    return;
+  }
+
+  await saveEntryDB(autoEntryObj);
+  entries = await getAll("entries");
+  populatePeriodDropdown();
+  
+  renderAll(); 
+}
+
+async function ensureAccountExists(accountName, accountType) {
+  const match = accounts.find(a => a.name.toLowerCase() === accountName.toLowerCase());
+  
+  if (!match) {
+    await saveAccount({ name: accountName, type: accountType });
+    accounts = await getAll("accounts");
+    
+    renderAccounts();
+    updateLedgerDropdown();
+    console.log(`✨ AI Dynamic Provisioner: Created account "${accountName}" mapped under [${accountType}] classification.`);
+  }
+}
+
+function closeWidgetBotWindow() {
+  document.getElementById("botInterfaceWindow").style.display = "none";
+}
+
+function appendBotMessage(text, type) {
+  let container = document.getElementById("botMessageContainer");
+  let msg = document.createElement("div");
+  msg.className = `bot-bubble ${type}-type`;
+  msg.innerText = text;
+  container.appendChild(msg);
+  container.scrollTop = container.scrollHeight;
 }
 </script>
 
